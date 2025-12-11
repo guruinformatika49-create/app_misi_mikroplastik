@@ -14,30 +14,19 @@ st.set_page_config(
 )
 
 # Inisialisasi Session State Global
-if 'report_submitted' not in st.session_state:
-    st.session_state.report_submitted = False
-if 'final_solusi' not in st.session_state:
-    st.session_state.final_solusi = ""
-if 'final_jenis' not in st.session_state:
-    st.session_state.final_jenis = ""
-if 'final_nama' not in st.session_state:
-    st.session_state.final_nama = ""
-if 'uploaded_df' not in st.session_state:
-    st.session_state.uploaded_df = None
-if 'current_nama_siswa' not in st.session_state:
-    st.session_state.current_nama_siswa = ""
-if 'analisis_run' not in st.session_state:
-    st.session_state.analisis_run = False
-if 'kriteria_1' not in st.session_state:
-    st.session_state.kriteria_1 = False
-if 'kriteria_2' not in st.session_state:
-    st.session_state.kriteria_2 = False
-if 'solusi_aksi_nyata' not in st.session_state:
-    st.session_state.solusi_aksi_nyata = ""
-if 'dominan_jenis' not in st.session_state:
-    st.session_state.dominan_jenis = ""
+# (Disimpan di sini agar Streamlit mengenal semua key dari awal)
+if 'report_submitted' not in st.session_state: st.session_state.report_submitted = False
+if 'final_solusi' not in st.session_state: st.session_state.final_solusi = ""
+if 'final_jenis' not in st.session_state: st.session_state.final_jenis = ""
+if 'final_nama' not in st.session_state: st.session_state.final_nama = ""
+if 'uploaded_df' not in st.session_state: st.session_state.uploaded_df = None
+if 'current_nama_siswa' not in st.session_state: st.session_state.current_nama_siswa = ""
+if 'analisis_run' not in st.session_state: st.session_state.analisis_run = False
+if 'kriteria_1' not in st.session_state: st.session_state.kriteria_1 = False
+if 'kriteria_2' not in st.session_state: st.session_state.kriteria_2 = False
+if 'solusi_aksi_nyata' not in st.session_state: st.session_state.solusi_aksi_nyata = ""
+if 'dominan_jenis' not in st.session_state: st.session_state.dominan_jenis = ""
 
-# Inisialisasi DataFrame default untuk tabel SMART
 DEFAULT_SMART_DF = pd.DataFrame({
     'Komponen SMART': ['S – Specific', 'M – Measurable', 'A – Achievable', 'R – Relevant', 'T – Time-bound'],
     'Pertanyaan Panduan': [
@@ -50,10 +39,71 @@ DEFAULT_SMART_DF = pd.DataFrame({
     'Jawabanmu': ['Tulis di sini...', 'Tulis di sini...', 'Tulis di sini...', 'Tulis di sini...', 'Tulis di sini...']
 })
 
-# Inisialisasi Session State untuk data editor (Tabel SMART)
 if 'smart_data' not in st.session_state:
     st.session_state.smart_data = DEFAULT_SMART_DF
 
+# --- 1. FUNGSI CALLBACK ---
+
+def run_analisis_callback():
+    """Callback untuk tombol Run Analisis."""
+    # Pastikan data ada sebelum mengatur state
+    if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
+        st.session_state.analisis_run = True
+        
+        # Reset form solusi dan laporan saat analisis baru dijalankan
+        st.session_state.report_submitted = False
+        st.session_state.kriteria_1 = False
+        st.session_state.kriteria_2 = False
+        st.session_state.solusi_aksi_nyata = ""
+        st.session_state.smart_data = DEFAULT_SMART_DF.copy() # Reset tabel SMART
+        
+        st.rerun()
+    else:
+        # Menangani kasus jika tombol diklik sebelum upload selesai (meskipun dilindungi di UI)
+        st.error("Gagal menjalankan analisis. Pastikan file Excel sudah diunggah dan nama kelompok terisi.")
+
+def submit_report_callback():
+    """Callback function untuk tombol Selesaikan Laporan."""
+    
+    # Ambil data dari tabel yang sudah diedit
+    df_smart = st.session_state.smart_data 
+    jawaban_smart = df_smart['Jawabanmu'].tolist()
+    
+    aksi_nyata = st.session_state.solusi_aksi_nyata
+    k1_check = st.session_state.kriteria_1
+    k2_check = st.session_state.kriteria_2
+    
+    # Validasi input
+    if any(j == 'Tulis di sini...' or not j for j in jawaban_smart) or not aksi_nyata:
+        st.error("❌ **ERROR:** Mohon lengkapi **SEMUA** kolom 'Jawabanmu' di tabel SMART dan kolom Aksi Nyata.")
+        st.session_state.report_submitted = False
+        return
+        
+    if not k1_check or not k2_check:
+        st.error("❌ **ERROR:** Mohon centang kedua kriteria Laporan Aksi (Specific dan Measurable) sebelum menyelesaikan laporan.")
+        st.session_state.report_submitted = False
+        return
+    
+    # Format Solusi Akhir (Dibuat lebih rapi)
+    solusi_input_final = (
+        f"**Tujuan SMART:**\n"
+        f"- S (Specific): {jawaban_smart[0]}\n"
+        f"- M (Measurable): {jawaban_smart[1]}\n"
+        f"- A (Achievable): {jawaban_smart[2]}\n"
+        f"- R (Relevant): {jawaban_smart[3]}\n"
+        f"- T (Time-bound): {jawaban_smart[4]}\n\n"
+        f"**Rencana Aksi Nyata (5 Poin):**\n{aksi_nyata}"
+    )
+        
+    # Jika validasi lolos, simpan hasil akhir ke Session State
+    st.session_state.report_submitted = True
+    st.session_state.final_solusi = solusi_input_final
+    st.session_state.final_jenis = st.session_state.dominan_jenis
+    st.session_state.final_nama = st.session_state.current_nama_siswa
+
+    st.rerun() # Panggil rerun untuk menampilkan laporan final
+
+# --- FUNGSI PENDUKUNG LAINNYA ---
 
 def generate_feedback(jenis_dominan_str):
     # Logika Fakta dan Rekomendasi (Tidak Diubah)
@@ -88,47 +138,6 @@ def generate_feedback(jenis_dominan_str):
     ]
     
     return fakta_1, fakta_2, rekomendasi, random.choice(kata_mutiara), img_query
-
-def submit_report_callback():
-    """Callback function untuk tombol Selesaikan Laporan."""
-    
-    # Ambil data dari tabel yang sudah diedit
-    df_smart = st.session_state.smart_data 
-    jawaban_smart = df_smart['Jawabanmu'].tolist()
-    
-    # Ambil data Aksi Nyata dan Checkbox
-    aksi_nyata = st.session_state.solusi_aksi_nyata
-    k1_check = st.session_state.kriteria_1
-    k2_check = st.session_state.kriteria_2
-    
-    # Validasi input
-    if any(j == 'Tulis di sini...' or not j for j in jawaban_smart) or not aksi_nyata:
-        st.error("❌ **ERROR:** Mohon lengkapi **SEMUA** kolom 'Jawabanmu' di tabel SMART dan kolom Aksi Nyata.")
-        st.session_state.report_submitted = False
-        return
-        
-    if not k1_check or not k2_check:
-        st.error("❌ **ERROR:** Mohon centang kedua kriteria Laporan Aksi (Specific dan Measurable) sebelum menyelesaikan laporan.")
-        st.session_state.report_submitted = False
-        return
-    
-    # Format Solusi Akhir (Dibuat lebih rapi)
-    solusi_input_final = (
-        f"**Tujuan SMART:**\n"
-        f"- S (Specific): {jawaban_smart[0]}\n"
-        f"- M (Measurable): {jawaban_smart[1]}\n"
-        f"- A (Achievable): {jawaban_smart[2]}\n"
-        f"- R (Relevant): {jawaban_smart[3]}\n"
-        f"- T (Time-bound): {jawaban_smart[4]}\n\n"
-        f"**Rencana Aksi Nyata (5 Poin):**\n{aksi_nyata}"
-    )
-        
-    # Jika validasi lolos, simpan hasil akhir ke Session State
-    st.session_state.report_submitted = True
-    st.session_state.final_solusi = solusi_input_final
-    st.session_state.final_jenis = st.session_state.dominan_jenis
-    st.session_state.final_nama = st.session_state.current_nama_siswa
-
 
 def display_final_report():
     # Logika display sama, tidak diubah
@@ -169,7 +178,7 @@ def display_final_report():
     st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis.replace(" ", "+"))
 
 
-# --- 2. FUNGSI ANALISIS DATA ---
+# --- 2. FUNGSI ANALISIS DATA (INTI TAHAP 2) ---
 
 def run_analisis(df, nama_siswa):
     """Menganalisis data, menampilkan visualisasi, dan memunculkan form solusi."""
@@ -234,16 +243,13 @@ def run_analisis(df, nama_siswa):
     # --- FORM SOLUSI ---
     st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
     
-    # PETUNJUK BARU
+    # PETUNJUK
     st.markdown(f"""
         Pilih satu solusi terbaik, lalu buat kerangka **SMART**-nya berdasarkan masalah utama (**{jenis_terdominan}**).
         Isi kolom **'Jawabanmu'** pada tabel interaktif di bawah:
     """)
     
-    # --- TABEL INTERAKTIF SMART (BARU) ---
-    
-    # Menggunakan st.data_editor untuk membuat tabel interaktif
-    # PENTING: Gunakan Session State yang sudah diinisialisasi untuk menyimpan data
+    # --- TABEL INTERAKTIF SMART ---
     edited_df = st.data_editor(
         st.session_state.smart_data,
         column_config={
@@ -256,7 +262,7 @@ def run_analisis(df, nama_siswa):
             "Pertanyaan Panduan": st.column_config.Column(disabled=True)
         },
         hide_index=True,
-        key="smart_data" # Key ini akan menyimpan data yang diinput ke st.session_state.smart_data
+        key="smart_data"
     )
     
     # Aksi Nyata (5 Poin)
@@ -275,7 +281,7 @@ def run_analisis(df, nama_siswa):
     st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
     
 
-    # Tombol Submit. Argumen callback DIHAPUS untuk stabilitas Session State.
+    # Tombol Submit. Callback aman menggunakan Session State.
     st.button(
         "Selesaikan Laporan & Dapatkan Apresiasi!", 
         key="submit_solusi_btn",
@@ -308,7 +314,7 @@ def main():
 
     # Input Nama Siswa (Tahap Awal)
     nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input_unique")
-
+    
     st.header("📥 Tahap 1: Unggah Data Audit Sampah")
     st.markdown("Unggah file Excel (`.xlsx`) hasil audit sampah Anda.")
 
@@ -326,6 +332,11 @@ def main():
                 st.session_state.uploaded_df = None
                 return
 
+            # Perubahan: Jika file baru diunggah, reset status analisis
+            if uploaded_file != st.session_state.get('last_uploaded_file'):
+                st.session_state.analisis_run = False
+                st.session_state.last_uploaded_file = uploaded_file
+
             st.success(f"✅ Data berhasil diunggah! Halo, **{nama_siswa}**.")
             st.dataframe(df.head())
             
@@ -333,32 +344,25 @@ def main():
             st.session_state.uploaded_df = df
             st.session_state.current_nama_siswa = nama_siswa
             
-            if st.session_state.analisis_run:
-                st.session_state.analisis_run = False
-            
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
             st.session_state.uploaded_df = None
+            st.session_state.analisis_run = False # Matikan analisis jika error
 
-    # LOGIKA TOMBOL RUN ANALISIS
+    # LOGIKA TOMBOL RUN ANALISIS (MENGGUNAKAN CALLBACK BARU)
     if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
         if not st.session_state.analisis_run:
-            if st.button("🚀 Run Analisis Data (Tahap 2 & 3)", key="run_analisis_btn"):
-                st.session_state.analisis_run = True
-                
-                # Reset output dan form solusi
-                st.session_state.report_submitted = False
-                st.session_state.kriteria_1 = False
-                st.session_state.kriteria_2 = False
-                st.session_state.solusi_aksi_nyata = ""
-                st.session_state.smart_data = DEFAULT_SMART_DF # Reset tabel SMART ke default
-                
-                st.rerun()
+            # Tombol yang memanggil callback run_analisis_callback
+            st.button(
+                "🚀 Run Analisis Data (Tahap 2 & 3)", 
+                key="run_analisis_btn",
+                on_click=run_analisis_callback
+            )
 
-        # Tampilkan hasil analisis jika analisis_run sudah True
-        if st.session_state.analisis_run:
-            st.markdown("---")
-            run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
+    # TAMPILKAN HASIL ANALISIS JIKA STATE SUDAH TRUE (SETELAH CALLBACK DARI TOMBOL)
+    if st.session_state.analisis_run and st.session_state.uploaded_df is not None:
+        st.markdown("---")
+        run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
 
     # Tampilkan laporan jika sudah disubmit
     if st.session_state.report_submitted:
