@@ -13,8 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inisialisasi Session State
-# State untuk laporan akhir
+# Inisialisasi Session State (Sama seperti sebelumnya)
 if 'report_submitted' not in st.session_state:
     st.session_state.report_submitted = False
 if 'final_solusi' not in st.session_state:
@@ -23,8 +22,6 @@ if 'final_jenis' not in st.session_state:
     st.session_state.final_jenis = ""
 if 'final_nama' not in st.session_state:
     st.session_state.final_nama = ""
-
-# State untuk menyimpan data yang sudah di-upload (DF dan Nama)
 if 'uploaded_df' not in st.session_state:
     st.session_state.uploaded_df = None
 if 'current_nama_siswa' not in st.session_state:
@@ -34,23 +31,27 @@ if 'analisis_run' not in st.session_state:
 
 
 def generate_feedback(jenis_dominan_str):
-    # Logika Faktanya sama, tidak diubah
-    fakta, rekomendasi, img_query = "", "", ""
+    # Logika Fakta sama, tidak diubah
+    fakta_1, fakta_2, rekomendasi, img_query = "", "", "", ""
 
     if "Botol PET" in jenis_dominan_str:
-        fakta = "Fakta Mengkhawatirkan: Botol PET membutuhkan waktu sekitar 450 tahun untuk terurai. Sebagian besar botol hanya digunakan sekali!"
+        fakta_1 = "Fakta Mengkhawatirkan: Botol PET membutuhkan waktu sekitar 450 tahun untuk terurai. Sebagian besar botol hanya digunakan sekali!"
+        fakta_2 = "Jutaan ton botol PET berakhir di lautan setiap tahun. Mereka terfragmentasi menjadi mikroplastik yang memasuki rantai makanan kita."
         rekomendasi = "Rekomendasi Penanganan: Wajibkan penggunaan botol minum (tumbler) isi ulang di seluruh area sekolah (guru dan siswa)."
         img_query = "Reusable water bottle vs single use plastic bottle"
     elif "Bungkus Snack" in jenis_dominan_str or "Plastik Film" in jenis_dominan_str:
-        fakta = "Fakta Mengkhawatirkan: Bungkus berlapis (multilayer) seperti bungkus snack hampir tidak mungkin didaur ulang di Indonesia dan langsung menjadi residu."
+        fakta_1 = "Fakta Mengkhawatirkan: Bungkus berlapis (multilayer) seperti bungkus snack hampir tidak mungkin didaur ulang secara ekonomis."
+        fakta_2 = "Bungkus ini langsung menjadi residu yang menumpuk di TPA atau dibakar, menghasilkan gas beracun yang membahayakan kesehatan paru-paru."
         rekomendasi = "Rekomendasi Penanganan: Dorong siswa membawa bekal makanan ringan dari rumah dalam wadah yang dapat dipakai ulang (tupperware)."
         img_query = "Multilayer plastic packaging"
     elif "Sedotan" in jenis_dominan_str:
-        fakta = "Fakta Mengkhawatirkan: Meskipun ringan, jutaan sedotan digunakan setiap hari. Karena ukurannya, sedotan adalah penyumbang mikroplastik di laut yang berbahaya bagi biota."
+        fakta_1 = "Fakta Mengkhawatirkan: Meskipun ringan, sedotan adalah penyumbang mikroplastik berbahaya yang mudah dicerna oleh biota laut."
+        fakta_2 = "Karena bentuknya, sedotan sulit disaring oleh mesin daur ulang dan sering kali langsung menjadi sampah residu."
         rekomendasi = "Rekomendasi Penanganan: Larang penyediaan sedotan plastik di kantin dan ganti dengan sedotan kertas atau tidak sama sekali."
         img_query = "Microplastic pollution in ocean"
     else: 
-        fakta = "Fakta Mengkhawatirkan: Setiap tahun, jutaan ton plastik berakhir di TPA dan mencemari lingkungan. Perubahan dimulai dari kesadaran kita!"
+        fakta_1 = "Fakta Mengkhawatirkan: Setiap tahun, jutaan ton plastik berakhir di TPA dan mencemari lingkungan. Perubahan dimulai dari kesadaran kita!"
+        fakta_2 = "Sampah yang tidak terkelola dengan baik menyebabkan banjir karena menyumbat saluran air dan menjadi sarang penyakit."
         rekomendasi = "Rekomendasi Penanganan: Adakan pelatihan pemilahan sampah yang ketat (organik vs non-organik) untuk meningkatkan efektivitas daur ulang di sekolah."
         img_query = "Global plastic waste problem"
         
@@ -61,11 +62,10 @@ def generate_feedback(jenis_dominan_str):
         "Masa depan hijau hijau dimulai dengan keputusan kecil hari ini."
     ]
     
-    return fakta, rekomendasi, random.choice(kata_mutiara), img_query
+    return fakta_1, fakta_2, rekomendasi, random.choice(kata_mutiara), img_query
 
 def submit_report_callback(jenis_terdominan, nama_siswa):
-    """Callback function untuk tombol Selesaikan Laporan."""
-    
+    # Logika callback sama, tidak diubah
     solusi_input = st.session_state.solusi_area
     k1_check = st.session_state.kriteria_1
     k2_check = st.session_state.kriteria_2
@@ -80,14 +80,13 @@ def submit_report_callback(jenis_terdominan, nama_siswa):
         st.session_state.report_submitted = False
         return
         
-    # Jika validasi lolos, simpan hasil akhir ke Session State
     st.session_state.report_submitted = True
     st.session_state.final_solusi = solusi_input
     st.session_state.final_jenis = jenis_terdominan
     st.session_state.final_nama = nama_siswa
 
 def display_final_report():
-    """Menampilkan laporan akhir dari Session State."""
+    # Logika display sama, tidak diubah
     nama = st.session_state.final_nama
     solusi = st.session_state.final_solusi
     jenis = st.session_state.final_jenis
@@ -95,9 +94,8 @@ def display_final_report():
     if not jenis or not nama or not solusi:
         return 
 
-    fakta, rekomendasi, kata_mutiara_pilihan, img_query = generate_feedback(jenis)
+    fakta_1, fakta_2, rekomendasi, kata_mutiara_pilihan, img_query = generate_feedback(jenis)
 
-    # Output Apresiasi Streamlit
     st.balloons()
     st.markdown(f"""
         <div style='background-color:#007bff; color:white; padding:20px; text-align:center; border-radius:10px;'>
@@ -112,7 +110,8 @@ def display_final_report():
             <p><b>Solusi Utama yang Anda Ajukan:</b> {solusi}</p>
             <p><b>Fokus Utama Proyek Anda:</b> {jenis}</p>
             <hr>
-            <p style='font-weight: bold; color:#dc3545;'>🚨 {fakta}</p>
+            <p style='font-weight: bold; color:#dc3545;'>🚨 {fakta_1}</p>
+            <p style='font-weight: bold; color:#dc3545;'>🚨 {fakta_2}</p>
             <p><b>Langkah Rekomendasi:</b> {rekomendasi}</p>
             <hr>
             <p style='font-style: italic;'>"{kata_mutiara_pilihan}"</p>
@@ -120,17 +119,13 @@ def display_final_report():
     """, unsafe_allow_html=True)
     
     st.markdown(f"**Visualisasi Dampak dan Solusi ({jenis}):**")
-    # Ganti dengan URL gambar realistik
     st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis.replace(" ", "+"))
 
 
-# --- 2. FUNGSI ANALISIS DATA (HANYA FUNGSI INI YANG AKAN DIPANGGIL OLEH TOMBOL) ---
-
-# --- 2. FUNGSI ANALISIS DATA (BAGIAN YANG DIUBAH) ---
+# --- 2. FUNGSI ANALISIS DATA ---
 
 def run_analisis(df, nama_siswa):
-    """Menganalisis data, menampilkan visualisasi, dan memunculkan form solusi."""
-
+    # Logika Analisis sama, tidak diubah
     st.header("📊 Tahap 2: Hasil Analisis Data Audit")
     
     data_berat_per_jenis = df.groupby('Jenis Plastik')['Berat (gram)'].sum().sort_values(ascending=False)
@@ -139,9 +134,9 @@ def run_analisis(df, nama_siswa):
     jenis_terdominan = data_berat_per_jenis.index[0] if not data_berat_per_jenis.empty else "Tidak Ada Data Plastik"
     berat_terdominan = data_berat_per_jenis.values[0] if not data_berat_per_jenis.empty else 0
 
-    # PERBAIKAN: Mengganti st.info dengan st.markdown untuk menghindari TypeError saat menggunakan HTML
+    # Kotak Info dengan Kontras
     st.markdown(f"""
-        <div style='background-color:#fff3cd; border:1px solid #ffeeba; padding:10px; border-radius:5px;'>
+        <div style='background-color:#ffeeba; color:#495057; padding:15px; border-radius:5px; border:1px solid #ffcc00;'>
             <b>Total Sampah Plastik yang Diaudit:</b> {total_berat_keseluruhan:.2f} gram.<br>
             <b>Jenis Paling Dominan:</b> <b>{jenis_terdominan}</b> ({berat_terdominan:.2f} gram).<br>
             Fokus solusi kita harus ada pada jenis ini!
@@ -203,12 +198,12 @@ def run_analisis(df, nama_siswa):
     st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
     st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
     
-    st.markdown("#### 📝 Detail Rencana Aksi (Tuliskan Minimal 3 Poin)")
+    st.markdown("#### 📝 Detail Rencana Aksi (Tuliskan Minimal 5 Poin Aksi Nyata)")
     
     # Input Solusi
     st.text_area(
         "Tuliskan Rencana Aksi/Solusi Utama Anda di sini:",
-        placeholder='Contoh:\n1. Mengajukan surat resmi ke Kantin untuk mengganti wadah Styrofoam dengan wadah reusable.\n2. Melakukan kampanye edukasi setiap hari Senin di lapangan sekolah tentang bahaya bungkus snack.\n3. Memasang 5 papan informasi di lokasi Hotspot.',
+        placeholder='Contoh:\n1. Mengajukan surat resmi ke Kantin untuk mengganti wadah Styrofoam dengan wadah reusable.\n2. Melakukan kampanye edukasi setiap hari Senin di lapangan sekolah tentang bahaya bungkus snack.\n3. Memasang 5 papan informasi di lokasi Hotspot.\n4. Membentuk Tim Patroli Sampah.\n5. Mengadakan kompetisi desain tumbler antar kelas.',
         key='solusi_area' 
     )
 
@@ -221,12 +216,23 @@ def run_analisis(df, nama_siswa):
     )
 
 
-
 # --- 3. PROGRAM UTAMA APLIKASI WEB (MAIN) ---
 
 def main():
     st.title("🗑️ Data Driven Trash Tracker: Misi Mikroplastik Sekolah") 
     st.header("Selamat Datang, Detektif Lingkungan!")
+
+    # Kutipan yang Di-Highlight (BARU DITAMBAHKAN)
+    st.markdown("""
+        <div style='background-color:#E8F5E9; border-left: 5px solid #4CAF50; padding: 10px 15px; margin: 15px 0; border-radius: 4px;'>
+            <p style='font-style: italic; font-size: 1.1em; color: #1B5E20;'>
+                "Kita tidak mewarisi bumi dari leluhur kita; kita meminjamnya dari anak cucu kita."
+                <br>
+                <small>— Pepatah Suku Indian</small>
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+    # 
 
     with st.expander("❓ Klik untuk memahami Tujuan Proyek"):
         st.markdown("""
@@ -246,7 +252,6 @@ def main():
     # LOGIKA PENTING: Proses Upload dan Penyimpanan ke Session State
     if uploaded_file is not None and nama_siswa:
         try:
-            # Membaca file yang diunggah Streamlit
             df = pd.read_excel(uploaded_file)
             
             kolom_wajib = ['Tanggal', 'Jenis Plastik', 'Berat (gram)', 'Sumber (Kantin/Kelas)']
@@ -261,7 +266,7 @@ def main():
             # SIMPAN DF DAN NAMA KE SESSION STATE
             st.session_state.uploaded_df = df
             st.session_state.current_nama_siswa = nama_siswa
-            st.session_state.analisis_run = True # Set analisis sebagai 'True' sementara untuk menunjukkan file siap
+            st.session_state.analisis_run = False 
             
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
@@ -269,14 +274,11 @@ def main():
 
     # LOGIKA BARU: TOMBOL RUN ANALISIS
     if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
-        # Tombol ini sekarang hanya akan muncul setelah upload sukses
         if st.button("🚀 Run Analisis Data (Tahap 2 & 3)", key="run_analisis_btn"):
             st.session_state.analisis_run = True
             
-        # Setelah tombol di-klik (st.session_state.analisis_run == True), panggil fungsi run_analisis
         if st.session_state.analisis_run:
             st.markdown("---")
-            # Panggil Analisis menggunakan data dari Session State
             run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
 
     # Tampilkan laporan jika sudah disubmit, terlepas dari Tahap 1 & 2
