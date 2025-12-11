@@ -188,11 +188,11 @@ def run_analisis(df, nama_siswa):
 
     st.session_state.dominan_jenis = jenis_terdominan
 
-    # Kotak Info dengan Kontras (PERBAIKAN DI SINI)
+    # Kotak Info dengan Kontras
     st.markdown(f"""
-        <div style='background-color:#ffeeba; color:#000000; padding:15px; border-radius:5px; border:1px solid #ffcc00;'>
-            <b>Total Sampah Plastik yang Diaudit:</b> <b>{total_berat_keseluruhan:.2f} gram</b>.<br>
-            <b>Jenis Paling Dominan:</b> <b>{jenis_terdominan}</b> (<b>{berat_terdominan:.2f} gram</b>).<br>
+        <div style='background-color:#ffeeba; color:#495057; padding:15px; border-radius:5px; border:1px solid #ffcc00;'>
+            <b>Total Sampah Plastik yang Diaudit:</b> {total_berat_keseluruhan:.2f} gram.<br>
+            <b>Jenis Paling Dominan:</b> <b>{jenis_terdominan}</b> ({berat_terdominan:.2f} gram).<br>
             Fokus solusi kita harus ada pada jenis ini!
         </div>
     """, unsafe_allow_html=True)
@@ -230,5 +230,139 @@ def run_analisis(df, nama_siswa):
                 ax2.set_title('Persentase Kontribusi', fontsize=12)
                 ax2.axis('equal') 
                 st.pyplot(fig2)
+                
             else:
-                st.warning("Tidak cukup data plastik untuk membuat Diagram Lingkaran
+                st.warning("Tidak cukup data plastik untuk membuat Diagram Lingkaran yang berarti.")
+    
+    # --- FORM SOLUSI (TAHAP 3) ---
+    st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
+    
+    # --- PERBAIKAN SINTAKSIS DI SINI ---
+    st.markdown(f"""
+        Pilih satu solusi terbaik, lalu buat kerangka **SMART**-nya berdasarkan masalah utama (**{jenis_terdominan}**).
+        Isi kolom **'Jawabanmu'** pada tabel interaktif di bawah:
+    """)
+    # --- AKHIR PERBAIKAN SINTAKSIS ---
+    
+    # --- TABEL INTERAKTIF SMART ---
+    # Perubahan Kunci: Hapus key="smart_data" dan simpan hasil kembaliannya ke smart_data_temp
+    edited_df = st.data_editor(
+        st.session_state.smart_data_temp,
+        column_config={
+            "Jawabanmu": st.column_config.TextColumn(
+                "Jawabanmu",
+                help="Tuliskan jawaban SMART Anda di kolom ini.",
+                width="large"
+            ),
+            "Komponen SMART": st.column_config.Column(disabled=True),
+            "Pertanyaan Panduan": st.column_config.Column(disabled=True)
+        },
+        hide_index=True,
+    )
+    
+    # Simpan hasil edit kembali ke Session State secara manual
+    # Ini memastikan Session State diupdate setelah widget selesai diproses.
+    st.session_state.smart_data_temp = edited_df
+    
+    # Aksi Nyata (5 Poin)
+    st.markdown("#### 📝 Detail Rencana Aksi Nyata (Tuliskan Minimal 5 Poin)")
+    st.text_area(
+        "Tuliskan 5 langkah operasional yang akan Anda lakukan untuk mencapai tujuan SMART di atas:",
+        placeholder='1. Mengajukan surat resmi ke Kantin.\n2. Kampanye di media sosial sekolah.\n3. Memasang 5 papan informasi larangan Botol PET.\n4. Membentuk Tim Patroli Sampah.\n5. Mengadakan kompetisi desain tumbler.',
+        key='solusi_aksi_nyata'
+    )
+
+
+    # --- KRITERIA VALIDASI MANDIRI ---
+    st.markdown("#### ✅ Checklist Validasi Mandiri (Wajib Centang)")
+    
+    st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
+    st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
+    
+
+    # Tombol Submit 
+    st.button(
+        "Selesaikan Laporan & Dapatkan Apresiasi!", 
+        key="submit_solusi_btn",
+        on_click=submit_report_callback
+    )
+
+
+# --- 3. PROGRAM UTAMA APLIKASI WEB (MAIN) ---
+
+def main():
+    st.title("🗑️ Data Driven Trash Tracker: Misi Mikroplastik Sekolah") 
+    st.header("Selamat Datang, Detektif Lingkungan!")
+
+    st.markdown("""
+        <div style='background-color:#E8F5E9; border-left: 5px solid #4CAF50; padding: 10px 15px; margin: 15px 0; border-radius: 4px;'>
+            <p style='font-style: italic; font-size: 1.1em; color: #1B5E20;'>
+                "Kita tidak mewarisi bumi dari leluhur kita; kita meminjamnya dari anak cucu kita."
+                <br>
+                <small>— Pepatah Suku Indian</small>
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    with st.expander("❓ Klik untuk memahami Tujuan Proyek"):
+        st.markdown("""
+            Proyek ini adalah investigasi ilmiah untuk mengungkap jejak sampah plastik di lingkungan sekolah.
+            Tujuan: <b>Menganalisis</b> data, <b>Memahami</b> sumber masalah, dan <b>Bertindak</b> merancang solusi!
+        """, unsafe_allow_html=True)
+
+    # Input Nama Siswa (Tahap Awal)
+    nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input_unique")
+
+    st.header("📥 Tahap 1: Unggah Data Audit Sampah")
+    st.markdown("Unggah file Excel (`.xlsx`) hasil audit sampah Anda.")
+
+    # File Uploader Streamlit
+    uploaded_file = st.file_uploader("Pilih file Excel (data_sampah.xlsx):", type=['xlsx'])
+    
+    # LOGIKA PENTING: Proses Upload dan Penyimpanan ke Session State
+    if uploaded_file is not None and nama_siswa:
+        try:
+            df = pd.read_excel(uploaded_file)
+            
+            kolom_wajib = ['Tanggal', 'Jenis Plastik', 'Berat (gram)', 'Sumber (Kantin/Kelas)']
+            if not all(col in df.columns for col in kolom_wajib):
+                st.error("⚠️ Error: Kolom Excel tidak sesuai! Pastikan kolomnya adalah: Tanggal, Jenis Plastik, Berat (gram), Sumber (Kantin/Kelas).")
+                st.session_state.uploaded_df = None
+                return
+
+            # Cek apakah file baru diunggah untuk mereset analisis
+            if st.session_state.uploaded_df is None or not df.equals(st.session_state.uploaded_df):
+                st.session_state.analisis_run = False
+
+            st.success(f"✅ Data berhasil diunggah! Halo, **{nama_siswa}**.")
+            st.dataframe(df.head())
+            
+            st.session_state.uploaded_df = df
+            st.session_state.current_nama_siswa = nama_siswa
+            
+        except Exception as e:
+            st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
+            st.session_state.uploaded_df = None
+            st.session_state.analisis_run = False
+
+    # LOGIKA TOMBOL RUN ANALISIS
+    if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
+        if not st.session_state.analisis_run:
+            st.button(
+                "🚀 Run Analisis Data (Tahap 2 & 3)", 
+                key="run_analisis_btn",
+                on_click=run_analisis_callback
+            )
+
+    # TAMPILKAN HASIL ANALISIS JIKA STATE SUDAH TRUE
+    if st.session_state.analisis_run and st.session_state.uploaded_df is not None:
+        st.markdown("---")
+        run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
+
+    # Tampilkan laporan jika sudah disubmit
+    if st.session_state.report_submitted:
+        display_final_report()
+
+
+if __name__ == "__main__":
+    main()
