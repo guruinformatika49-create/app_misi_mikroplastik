@@ -268,7 +268,8 @@ def run_analisis(df, nama_siswa):
     st.markdown("#### 📝 Detail Rencana Aksi Nyata (Tuliskan Minimal 5 Poin)")
     st.text_area(
         "Tuliskan 5 langkah operasional yang akan Anda lakukan untuk mencapai tujuan SMART di atas:",
-        placeholder=''
+        placeholder='1. Mengajukan surat resmi ke Kantin.\n2. Kampanye di media sosial sekolah.\n3. Memasang 5 papan informasi larangan Botol PET.\n4. Membentuk Tim Patroli Sampah.\n5. Mengadakan kompetisi desain tumbler.',
+        key='solusi_aksi_nyata'
     )
 
 
