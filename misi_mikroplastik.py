@@ -9,9 +9,9 @@ Original file is located at
 
 import pandas as pd
 import matplotlib.pyplot as plt
-from google.colab import files
-from IPython.display import display, HTML
-import ipywidgets as widgets
+#from google.colab import files
+#from IPython.display import display, HTML
+#import ipywidgets as widgets
 import io
 import random
 
