@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inisialisasi Session State (Sama seperti sebelumnya)
+# Inisialisasi Session State HARUS ADA DI SINI (di luar fungsi manapun)
 if 'report_submitted' not in st.session_state:
     st.session_state.report_submitted = False
 if 'final_solusi' not in st.session_state:
@@ -28,6 +28,12 @@ if 'current_nama_siswa' not in st.session_state:
     st.session_state.current_nama_siswa = ""
 if 'analisis_run' not in st.session_state:
     st.session_state.analisis_run = False
+    
+# Inisialisasi Session State untuk CHECKBOX (DIPINDAHKAN KE SINI)
+if 'kriteria_1' not in st.session_state:
+    st.session_state.kriteria_1 = False
+if 'kriteria_2' not in st.session_state:
+    st.session_state.kriteria_2 = False
 
 
 def generate_feedback(jenis_dominan_str):
@@ -122,10 +128,11 @@ def display_final_report():
     st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis.replace(" ", "+"))
 
 
-# --- 2. FUNGSI ANALISIS DATA ---
+# --- 2. FUNGSI ANALISIS DATA (KOREKSI CHECKBOX) ---
 
 def run_analisis(df, nama_siswa):
-    # Logika Analisis sama, tidak diubah
+    """Menganalisis data, menampilkan visualisasi, dan memunculkan form solusi."""
+
     st.header("📊 Tahap 2: Hasil Analisis Data Audit")
     
     data_berat_per_jenis = df.groupby('Jenis Plastik')['Berat (gram)'].sum().sort_values(ascending=False)
@@ -190,11 +197,9 @@ def run_analisis(df, nama_siswa):
     # --- KRITERIA VALIDASI MANDIRI ---
     st.markdown("#### ✅ Checklist Kriteria Laporan Aksi (Wajib Centang)")
     
-    if 'kriteria_1' not in st.session_state:
-        st.session_state.kriteria_1 = False
-    if 'kriteria_2' not in st.session_state:
-        st.session_state.kriteria_2 = False
-
+    # KODE INISIALISASI BERULANG DI SINI SUDAH DIHAPUS, DIGANTIKAN OLEH INISIALISASI DI AWAL FILE
+    
+    # St.checkbox sekarang sepenuhnya dikontrol oleh Session State yang diinisialisasi di awal.
     st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
     st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
     
@@ -222,7 +227,7 @@ def main():
     st.title("🗑️ Data Driven Trash Tracker: Misi Mikroplastik Sekolah") 
     st.header("Selamat Datang, Detektif Lingkungan!")
 
-    # Kutipan yang Di-Highlight (BARU DITAMBAHKAN)
+    # Kutipan yang Di-Highlight
     st.markdown("""
         <div style='background-color:#E8F5E9; border-left: 5px solid #4CAF50; padding: 10px 15px; margin: 15px 0; border-radius: 4px;'>
             <p style='font-style: italic; font-size: 1.1em; color: #1B5E20;'>
@@ -232,7 +237,6 @@ def main():
             </p>
         </div>
     """, unsafe_allow_html=True)
-    # 
 
     with st.expander("❓ Klik untuk memahami Tujuan Proyek"):
         st.markdown("""
@@ -276,7 +280,10 @@ def main():
     if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
         if st.button("🚀 Run Analisis Data (Tahap 2 & 3)", key="run_analisis_btn"):
             st.session_state.analisis_run = True
-            
+            # Reset kriteria checklist saat analisis baru dijalankan
+            st.session_state.kriteria_1 = False
+            st.session_state.kriteria_2 = False
+
         if st.session_state.analisis_run:
             st.markdown("---")
             run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
