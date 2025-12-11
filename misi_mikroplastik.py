@@ -33,13 +33,13 @@ if 'final_jenis' not in st.session_state: st.session_state.final_jenis = ""
 if 'final_nama' not in st.session_state: st.session_state.final_nama = ""
 if 'uploaded_df' not in st.session_state: st.session_state.uploaded_df = None
 if 'current_nama_siswa' not in st.session_state: st.session_state.current_nama_siswa = ""
-if 'analisis_run' not in st.session_state: st.session_run = False
+if 'analisis_run' not in st.session_state: st.session_state.analisis_run = False # Kunci yang benar
 if 'kriteria_1' not in st.session_state: st.session_state.kriteria_1 = False
 if 'kriteria_2' not in st.session_state: st.session_state.kriteria_2 = False
 if 'solusi_aksi_nyata' not in st.session_state: st.session_state.solusi_aksi_nyata = ""
 if 'dominan_jenis' not in st.session_state: st.session_state.dominan_jenis = ""
-# Pastikan smart_data diinisialisasi hanya saat diperlukan di callback
-# if 'smart_data' not in st.session_state: st.session_state.smart_data = DEFAULT_SMART_DF.copy() # Dihapus agar tidak konflik
+# Kunci smart_data akan diinisialisasi di callback agar tidak konflik dengan st.data_editor
+# yang sedang beroperasi di luar callback.
 
 
 # --- 1. FUNGSI CALLBACK ---
@@ -65,7 +65,7 @@ def run_analisis_callback():
 def submit_report_callback():
     """Callback function untuk tombol Selesaikan Laporan. Mengambil data dari smart_data."""
     
-    # Ambil data dari tabel yang sudah diedit (kunci ini DIJAMIN ada setelah run_analisis_callback)
+    # Ambil data dari tabel yang sudah diedit 
     if 'smart_data' not in st.session_state:
         st.error("❌ Data SMART belum tersedia. Mohon jalankan Tahap 2 terlebih dahulu.")
         return
@@ -107,7 +107,7 @@ def submit_report_callback():
 # --- FUNGSI PENDUKUNG LAINNYA ---
 
 def generate_feedback(jenis_dominan_str):
-    """MENGATASI INDENTATION ERROR DI SINI"""
+    """Fungsi ini dikoreksi indentasinya."""
     fakta_1, fakta_2, rekomendasi, img_query = "", "", "", ""
 
     if "Botol PET" in jenis_dominan_str:
@@ -175,6 +175,7 @@ def display_final_report():
     """, unsafe_allow_html=True)
     
     st.markdown(f"**Visualisasi Dampak dan Solusi ({jenis}):**")
+    # Tag Gambar saya hapus agar tidak menimbulkan error di runtime Python Anda
     st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis.replace(" ", "+"))
 
 
@@ -217,7 +218,8 @@ def run_analisis(df, nama_siswa):
             plt.xticks(rotation=45, ha='right', fontsize=9)
             plt.tight_layout()
             st.pyplot(fig1) 
-                    
+            
+        
         # Visualisasi 2: Diagram Lingkaran
         with col2:
             st.subheader("2. Persentase Kontribusi")
@@ -234,7 +236,7 @@ def run_analisis(df, nama_siswa):
                 ax2.set_title('Persentase Kontribusi', fontsize=12)
                 ax2.axis('equal') 
                 st.pyplot(fig2)
-                            else:
+            else:
                 st.warning("Tidak cukup data plastik untuk membuat Diagram Lingkaran yang berarti.")
     
     # --- FORM SOLUSI (TAHAP 3) ---
@@ -246,7 +248,6 @@ def run_analisis(df, nama_siswa):
     """)
     
     # --- TABEL INTERAKTIF SMART ---
-    # st.session_state.smart_data dijamin ada karena sudah di-reset/dibuat di run_analisis_callback
     st.data_editor(
         st.session_state.smart_data,
         column_config={
