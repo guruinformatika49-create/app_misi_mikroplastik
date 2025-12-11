@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inisialisasi Session State (Sama seperti sebelumnya)
+# Inisialisasi Session State Global
 if 'report_submitted' not in st.session_state:
     st.session_state.report_submitted = False
 if 'final_solusi' not in st.session_state:
@@ -28,10 +28,35 @@ if 'current_nama_siswa' not in st.session_state:
     st.session_state.current_nama_siswa = ""
 if 'analisis_run' not in st.session_state:
     st.session_state.analisis_run = False
+if 'kriteria_1' not in st.session_state:
+    st.session_state.kriteria_1 = False
+if 'kriteria_2' not in st.session_state:
+    st.session_state.kriteria_2 = False
+if 'solusi_aksi_nyata' not in st.session_state:
+    st.session_state.solusi_aksi_nyata = ""
+if 'dominan_jenis' not in st.session_state:
+    st.session_state.dominan_jenis = ""
+
+# Inisialisasi DataFrame default untuk tabel SMART
+DEFAULT_SMART_DF = pd.DataFrame({
+    'Komponen SMART': ['S – Specific', 'M – Measurable', 'A – Achievable', 'R – Relevant', 'T – Time-bound'],
+    'Pertanyaan Panduan': [
+        'Apa tepatnya yang akan dilakukan?', 
+        'Bagaimana cara mengukur keberhasilannya?', 
+        'Apakah mungkin dilakukan dengan sumber daya yang ada?', 
+        'Apa hubungan solusi ini dengan masalah? Mengapa penting?', 
+        'Kapan target ini harus tercapai?'
+    ],
+    'Jawabanmu': ['Tulis di sini...', 'Tulis di sini...', 'Tulis di sini...', 'Tulis di sini...', 'Tulis di sini...']
+})
+
+# Inisialisasi Session State untuk data editor (Tabel SMART)
+if 'smart_data' not in st.session_state:
+    st.session_state.smart_data = DEFAULT_SMART_DF
 
 
 def generate_feedback(jenis_dominan_str):
-    # Logika Fakta sama, tidak diubah
+    # Logika Fakta dan Rekomendasi (Tidak Diubah)
     fakta_1, fakta_2, rekomendasi, img_query = "", "", "", ""
 
     if "Botol PET" in jenis_dominan_str:
@@ -64,14 +89,21 @@ def generate_feedback(jenis_dominan_str):
     
     return fakta_1, fakta_2, rekomendasi, random.choice(kata_mutiara), img_query
 
-def submit_report_callback(jenis_terdominan, nama_siswa):
-    # Logika callback sama, tidak diubah
-    solusi_input = st.session_state.solusi_area
+def submit_report_callback():
+    """Callback function untuk tombol Selesaikan Laporan."""
+    
+    # Ambil data dari tabel yang sudah diedit
+    df_smart = st.session_state.smart_data 
+    jawaban_smart = df_smart['Jawabanmu'].tolist()
+    
+    # Ambil data Aksi Nyata dan Checkbox
+    aksi_nyata = st.session_state.solusi_aksi_nyata
     k1_check = st.session_state.kriteria_1
     k2_check = st.session_state.kriteria_2
     
-    if not solusi_input:
-        st.error("❌ **ERROR:** Mohon masukkan ide solusi Anda di kolom teks.")
+    # Validasi input
+    if any(j == 'Tulis di sini...' or not j for j in jawaban_smart) or not aksi_nyata:
+        st.error("❌ **ERROR:** Mohon lengkapi **SEMUA** kolom 'Jawabanmu' di tabel SMART dan kolom Aksi Nyata.")
         st.session_state.report_submitted = False
         return
         
@@ -79,11 +111,24 @@ def submit_report_callback(jenis_terdominan, nama_siswa):
         st.error("❌ **ERROR:** Mohon centang kedua kriteria Laporan Aksi (Specific dan Measurable) sebelum menyelesaikan laporan.")
         st.session_state.report_submitted = False
         return
+    
+    # Format Solusi Akhir (Dibuat lebih rapi)
+    solusi_input_final = (
+        f"**Tujuan SMART:**\n"
+        f"- S (Specific): {jawaban_smart[0]}\n"
+        f"- M (Measurable): {jawaban_smart[1]}\n"
+        f"- A (Achievable): {jawaban_smart[2]}\n"
+        f"- R (Relevant): {jawaban_smart[3]}\n"
+        f"- T (Time-bound): {jawaban_smart[4]}\n\n"
+        f"**Rencana Aksi Nyata (5 Poin):**\n{aksi_nyata}"
+    )
         
+    # Jika validasi lolos, simpan hasil akhir ke Session State
     st.session_state.report_submitted = True
-    st.session_state.final_solusi = solusi_input
-    st.session_state.final_jenis = jenis_terdominan
-    st.session_state.final_nama = nama_siswa
+    st.session_state.final_solusi = solusi_input_final
+    st.session_state.final_jenis = st.session_state.dominan_jenis
+    st.session_state.final_nama = st.session_state.current_nama_siswa
+
 
 def display_final_report():
     # Logika display sama, tidak diubah
@@ -107,12 +152,14 @@ def display_final_report():
     st.markdown("### 🔬 Laporan Temuan dan Apresiasi")
     st.markdown(f"""
         <div style='border: 1px solid #ced4da; padding: 15px; background-color: #f8f9fa; border-radius: 5px;'>
-            <p><b>Solusi Utama yang Anda Ajukan:</b> {solusi}</p>
             <p><b>Fokus Utama Proyek Anda:</b> {jenis}</p>
             <hr>
             <p style='font-weight: bold; color:#dc3545;'>🚨 {fakta_1}</p>
             <p style='font-weight: bold; color:#dc3545;'>🚨 {fakta_2}</p>
             <p><b>Langkah Rekomendasi:</b> {rekomendasi}</p>
+            <hr>
+            <p><b>Rencana Solusi SMART Anda:</b></p>
+            <div style='white-space: pre-wrap; padding: 10px; border: 1px dashed #ccc; background-color: #fff;'>{solusi}</div>
             <hr>
             <p style='font-style: italic;'>"{kata_mutiara_pilihan}"</p>
         </div>
@@ -125,7 +172,8 @@ def display_final_report():
 # --- 2. FUNGSI ANALISIS DATA ---
 
 def run_analisis(df, nama_siswa):
-    # Logika Analisis sama, tidak diubah
+    """Menganalisis data, menampilkan visualisasi, dan memunculkan form solusi."""
+
     st.header("📊 Tahap 2: Hasil Analisis Data Audit")
     
     data_berat_per_jenis = df.groupby('Jenis Plastik')['Berat (gram)'].sum().sort_values(ascending=False)
@@ -133,6 +181,9 @@ def run_analisis(df, nama_siswa):
     
     jenis_terdominan = data_berat_per_jenis.index[0] if not data_berat_per_jenis.empty else "Tidak Ada Data Plastik"
     berat_terdominan = data_berat_per_jenis.values[0] if not data_berat_per_jenis.empty else 0
+
+    # SIMPAN JENIS DOMINAN KE SESSION STATE
+    st.session_state.dominan_jenis = jenis_terdominan
 
     # Kotak Info dengan Kontras
     st.markdown(f"""
@@ -182,37 +233,53 @@ def run_analisis(df, nama_siswa):
     
     # --- FORM SOLUSI ---
     st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
+    
+    # PETUNJUK BARU
     st.markdown(f"""
-        Analisis data menunjukkan bahwa **{jenis_terdominan}** adalah masalah terbesar kita. 
-        Tuliskan solusi Anda dengan memenuhi kriteria Laporan Aksi yang **SMART**:
+        Pilih satu solusi terbaik, lalu buat kerangka **SMART**-nya berdasarkan masalah utama (**{jenis_terdominan}**).
+        Isi kolom **'Jawabanmu'** pada tabel interaktif di bawah:
     """)
     
-    # --- KRITERIA VALIDASI MANDIRI ---
-    st.markdown("#### ✅ Checklist Kriteria Laporan Aksi (Wajib Centang)")
+    # --- TABEL INTERAKTIF SMART (BARU) ---
     
-    if 'kriteria_1' not in st.session_state:
-        st.session_state.kriteria_1 = False
-    if 'kriteria_2' not in st.session_state:
-        st.session_state.kriteria_2 = False
+    # Menggunakan st.data_editor untuk membuat tabel interaktif
+    # PENTING: Gunakan Session State yang sudah diinisialisasi untuk menyimpan data
+    edited_df = st.data_editor(
+        st.session_state.smart_data,
+        column_config={
+            "Jawabanmu": st.column_config.TextColumn(
+                "Jawabanmu",
+                help="Tuliskan jawaban SMART Anda di kolom ini.",
+                width="large"
+            ),
+            "Komponen SMART": st.column_config.Column(disabled=True),
+            "Pertanyaan Panduan": st.column_config.Column(disabled=True)
+        },
+        hide_index=True,
+        key="smart_data" # Key ini akan menyimpan data yang diinput ke st.session_state.smart_data
+    )
+    
+    # Aksi Nyata (5 Poin)
+    st.markdown("#### 📝 Detail Rencana Aksi Nyata (Tuliskan Minimal 5 Poin)")
+    st.text_area(
+        "Tuliskan 5 langkah operasional yang akan Anda lakukan untuk mencapai tujuan SMART di atas:",
+        placeholder='1. Mengajukan surat resmi ke Kantin.\n2. Kampanye di media sosial sekolah.\n3. Memasang 5 papan informasi larangan Botol PET.\n4. Membentuk Tim Patroli Sampah.\n5. Mengadakan kompetisi desain tumbler.',
+        key='solusi_aksi_nyata'
+    )
 
+
+    # --- KRITERIA VALIDASI MANDIRI ---
+    st.markdown("#### ✅ Checklist Validasi Mandiri (Wajib Centang)")
+    
     st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
     st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
     
-    st.markdown("#### 📝 Detail Rencana Aksi (Tuliskan Minimal 5 Poin Aksi Nyata)")
-    
-    # Input Solusi
-    st.text_area(
-        "Tuliskan Rencana Aksi/Solusi Utama Anda di sini:",
-        placeholder='Contoh:\n1. Mengajukan surat resmi ke Kantin untuk mengganti wadah Styrofoam dengan wadah reusable.\n2. Melakukan kampanye edukasi setiap hari Senin di lapangan sekolah tentang bahaya bungkus snack.\n3. Memasang 5 papan informasi di lokasi Hotspot.\n4. Membentuk Tim Patroli Sampah.\n5. Mengadakan kompetisi desain tumbler antar kelas.',
-        key='solusi_area' 
-    )
 
-    # Tombol Submit dengan callback
+    # Tombol Submit. Argumen callback DIHAPUS untuk stabilitas Session State.
     st.button(
         "Selesaikan Laporan & Dapatkan Apresiasi!", 
         key="submit_solusi_btn",
-        on_click=submit_report_callback,
-        args=(jenis_terdominan, nama_siswa)
+        on_click=submit_report_callback
     )
 
 
@@ -222,7 +289,7 @@ def main():
     st.title("🗑️ Data Driven Trash Tracker: Misi Mikroplastik Sekolah") 
     st.header("Selamat Datang, Detektif Lingkungan!")
 
-    # Kutipan yang Di-Highlight (BARU DITAMBAHKAN)
+    # Kutipan yang Di-Highlight
     st.markdown("""
         <div style='background-color:#E8F5E9; border-left: 5px solid #4CAF50; padding: 10px 15px; margin: 15px 0; border-radius: 4px;'>
             <p style='font-style: italic; font-size: 1.1em; color: #1B5E20;'>
@@ -232,7 +299,6 @@ def main():
             </p>
         </div>
     """, unsafe_allow_html=True)
-    # 
 
     with st.expander("❓ Klik untuk memahami Tujuan Proyek"):
         st.markdown("""
@@ -241,7 +307,7 @@ def main():
         """, unsafe_allow_html=True)
 
     # Input Nama Siswa (Tahap Awal)
-    nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input")
+    nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input_unique")
 
     st.header("📥 Tahap 1: Unggah Data Audit Sampah")
     st.markdown("Unggah file Excel (`.xlsx`) hasil audit sampah Anda.")
@@ -266,22 +332,35 @@ def main():
             # SIMPAN DF DAN NAMA KE SESSION STATE
             st.session_state.uploaded_df = df
             st.session_state.current_nama_siswa = nama_siswa
-            st.session_state.analisis_run = False 
+            
+            if st.session_state.analisis_run:
+                st.session_state.analisis_run = False
             
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
             st.session_state.uploaded_df = None
 
-    # LOGIKA BARU: TOMBOL RUN ANALISIS
+    # LOGIKA TOMBOL RUN ANALISIS
     if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
-        if st.button("🚀 Run Analisis Data (Tahap 2 & 3)", key="run_analisis_btn"):
-            st.session_state.analisis_run = True
-            
+        if not st.session_state.analisis_run:
+            if st.button("🚀 Run Analisis Data (Tahap 2 & 3)", key="run_analisis_btn"):
+                st.session_state.analisis_run = True
+                
+                # Reset output dan form solusi
+                st.session_state.report_submitted = False
+                st.session_state.kriteria_1 = False
+                st.session_state.kriteria_2 = False
+                st.session_state.solusi_aksi_nyata = ""
+                st.session_state.smart_data = DEFAULT_SMART_DF # Reset tabel SMART ke default
+                
+                st.rerun()
+
+        # Tampilkan hasil analisis jika analisis_run sudah True
         if st.session_state.analisis_run:
             st.markdown("---")
             run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
 
-    # Tampilkan laporan jika sudah disubmit, terlepas dari Tahap 1 & 2
+    # Tampilkan laporan jika sudah disubmit
     if st.session_state.report_submitted:
         display_final_report()
 
