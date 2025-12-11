@@ -45,81 +45,48 @@ def generate_feedback(jenis_dominan_str):
 
 # --- 1. FUNGSI ANALISIS DAN TAMPILAN STREAMLIT ---
 
+# (Hanya tampilkan bagian yang diubah dari file Streamlit Anda)
+
+# ... (Kode di atas tidak berubah: import, set_page_config, generate_feedback) ...
+
 def run_analisis(df, nama_siswa):
     """Menganalisis data dan menampilkan visualisasi di Streamlit."""
 
-    st.header("📊 Tahap 2: Hasil Analisis Data Audit")
-    
+    # ... (Bagian Analisis Data dan Visualisasi 1 & 2 TIDAK BERUBAH) ...
+
+    # Mendapatkan jenis terdominan (misalnya: Botol PET)
     data_berat_per_jenis = df.groupby('Jenis Plastik')['Berat (gram)'].sum().sort_values(ascending=False)
-    total_berat_keseluruhan = data_berat_per_jenis.sum()
-    
-    if data_berat_per_jenis.empty:
-        jenis_terdominan = "Tidak Ada Data Plastik"
-        berat_terdominan = 0
-    else:
-        jenis_terdominan = data_berat_per_jenis.index[0]
-        berat_terdominan = data_berat_per_jenis.values[0]
+    jenis_terdominan = data_berat_per_jenis.index[0] if not data_berat_per_jenis.empty else "Tidak Ada Data Plastik"
 
-    st.info(f"""
-        **Total Sampah Plastik yang Diaudit:** {total_berat_keseluruhan:.2f} gram.
-        **Jenis Paling Dominan:** **{jenis_terdominan}** ({berat_terdominan:.2f} gram).
-        Fokus solusi kita harus ada pada jenis ini!
-    """)
-    
-    if not data_berat_per_jenis.empty:
-        col1, col2 = st.columns(2)
-        
-        # Visualisasi 1: Diagram Batang
-        with col1:
-            st.subheader("1. Kontributor Utama Sampah Plastik")
-            fig1, ax1 = plt.subplots(figsize=(8, 5))
-            ax1.bar(data_berat_per_jenis.index, data_berat_per_jenis.values, 
-                    color=plt.cm.viridis(data_berat_per_jenis.values / total_berat_keseluruhan))
-            ax1.set_title('Berat Total Sampah Plastik (Gram)', fontsize=12)
-            ax1.set_xlabel('Jenis Plastik')
-            ax1.set_ylabel('Berat Total (gram)')
-            plt.xticks(rotation=45, ha='right', fontsize=9)
-            plt.tight_layout()
-            st.pyplot(fig1) 
-            
-        
-        # Visualisasi 2: Diagram Lingkaran
-        with col2:
-            st.subheader("2. Persentase Kontribusi")
-            fig2, ax2 = plt.subplots(figsize=(5, 5))
-            
-            data_pie = data_berat_per_jenis[data_berat_per_jenis / total_berat_keseluruhan > 0.05]
-            other_berat = total_berat_keseluruhan - data_pie.sum()
-            if other_berat > 0 and not data_pie.empty: 
-                data_pie['Lain-lain'] = other_berat
+    # ... (Bagian display st.info dan Visualisasi 1 & 2) ...
 
-            if not data_pie.empty: 
-                ax2.pie(data_pie.values, labels=data_pie.index, autopct='%1.1f%%', startangle=140, 
-                        colors=plt.cm.Set3.colors, wedgeprops={'edgecolor': 'black'})
-                ax2.set_title('Persentase Kontribusi', fontsize=12)
-                ax2.axis('equal') 
-                st.pyplot(fig2)
-                
-            else:
-                st.warning("Tidak cukup data plastik untuk membuat Diagram Lingkaran yang berarti.")
-    
-    # --- TAHAP 3: SOLUSI DAN APRESIASI ---
+    # --- TAHAP 3: SOLUSI DAN APRESIASI (Bagian yang Diperbaiki) ---
     st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
     st.markdown(f"""
         Analisis data menunjukkan bahwa **{jenis_terdominan}** adalah masalah terbesar kita. 
         Tuliskan solusi Anda di bawah ini!
     """)
     
-    solusi_input = st.text_area(
+    # 1. Input Solusi disimpan di Session State
+    st.session_state['solusi'] = st.text_area(
         "Tuliskan Rencana Aksi/Solusi Utama Anda di sini:",
-        placeholder='Contoh: Kampanye Stop Botol Sekali Pakai...'
+        placeholder='Contoh: Kampanye Stop Botol Sekali Pakai...',
+        key='solusi_area' # Tambahkan key
     )
 
-    if st.button("Selesaikan Laporan & Dapatkan Apresiasi!"):
+    # 2. Tombol Submit Laporan
+    # Tombol ini memicu fungsi (callback) jika diklik
+    if st.button("Selesaikan Laporan & Dapatkan Apresiasi!", key="submit_solusi_btn"):
+        
+        # Ambil nilai dari Session State
+        solusi_input = st.session_state['solusi']
+
         if not solusi_input:
             st.error("Mohon masukkan ide solusi Anda terlebih dahulu.")
+            # st.stop() # Tidak perlu stop, cukup return
             return
-
+        
+        # Jika solusi ada, lanjutkan ke logika apresiasi
         fakta, rekomendasi, kata_mutiara_pilihan, img_query = generate_feedback(jenis_terdominan)
         
         # Output Apresiasi Streamlit
@@ -144,9 +111,12 @@ def run_analisis(df, nama_siswa):
             </div>
         """, unsafe_allow_html=True)
         
-        st.markdown(f"**Visualisasi Dampak dan Solusi:**")
+        st.markdown(f"**Visualisasi Dampak dan Solusi ({jenis_terdominan}):**")
         # Trigger image relevant to the dominant plastic type
-        st.image("https://via.placeholder.com/800x300.png?text=Visualisasi+Dampak+dan+Solusi") # Ganti dengan URL gambar realistik jika ada
+        #  - Digantikan dengan placeholder
+        st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis_terdominan.replace(" ", "+")) 
+        
+# ... (Kode main() di bawahnya tidak berubah) ...
 
 # --- 2. PROGRAM UTAMA APLIKASI WEB (MAIN) ---
 
