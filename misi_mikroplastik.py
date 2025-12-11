@@ -126,6 +126,8 @@ def display_final_report():
 
 # --- 2. FUNGSI ANALISIS DATA (HANYA FUNGSI INI YANG AKAN DIPANGGIL OLEH TOMBOL) ---
 
+# --- 2. FUNGSI ANALISIS DATA (BAGIAN YANG DIUBAH) ---
+
 def run_analisis(df, nama_siswa):
     """Menganalisis data, menampilkan visualisasi, dan memunculkan form solusi."""
 
@@ -137,11 +139,13 @@ def run_analisis(df, nama_siswa):
     jenis_terdominan = data_berat_per_jenis.index[0] if not data_berat_per_jenis.empty else "Tidak Ada Data Plastik"
     berat_terdominan = data_berat_per_jenis.values[0] if not data_berat_per_jenis.empty else 0
 
-
-    st.info(f"""
-        **Total Sampah Plastik yang Diaudit:** {total_berat_keseluruhan:.2f} gram.<br>
-        **Jenis Paling Dominan:** **{jenis_terdominan}** ({berat_terdominan:.2f} gram).<br>
-        Fokus solusi kita harus ada pada jenis ini!
+    # PERBAIKAN: Mengganti st.info dengan st.markdown untuk menghindari TypeError saat menggunakan HTML
+    st.markdown(f"""
+        <div style='background-color:#fff3cd; border:1px solid #ffeeba; padding:10px; border-radius:5px;'>
+            <b>Total Sampah Plastik yang Diaudit:</b> {total_berat_keseluruhan:.2f} gram.<br>
+            <b>Jenis Paling Dominan:</b> <b>{jenis_terdominan}</b> ({berat_terdominan:.2f} gram).<br>
+            Fokus solusi kita harus ada pada jenis ini!
+        </div>
     """, unsafe_allow_html=True)
     
     if not data_berat_per_jenis.empty:
@@ -176,7 +180,6 @@ def run_analisis(df, nama_siswa):
                         colors=plt.cm.Set3.colors, wedgeprops={'edgecolor': 'black'})
                 ax2.set_title('Persentase Kontribusi', fontsize=12)
                 ax2.axis('equal') 
-                plt.show() # Tidak perlu st.pyplot, Streamlit akan mengambilnya jika tidak ada output lain
                 st.pyplot(fig2)
                 
             else:
@@ -216,6 +219,7 @@ def run_analisis(df, nama_siswa):
         on_click=submit_report_callback,
         args=(jenis_terdominan, nama_siswa)
     )
+
 
 
 # --- 3. PROGRAM UTAMA APLIKASI WEB (MAIN) ---
