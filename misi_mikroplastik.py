@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import random
 import io
 
-# --- 0. KONFIGURASI DAN FUNGSI UTAMA ---
+# --- 0. KONFIGURASI DAN INIALISASI SESSION STATE ---
 
 # Konfigurasi Streamlit (Header, Layout, dll.)
 st.set_page_config(
@@ -14,6 +14,7 @@ st.set_page_config(
 )
 
 # Inisialisasi Session State
+# State untuk laporan akhir
 if 'report_submitted' not in st.session_state:
     st.session_state.report_submitted = False
 if 'final_solusi' not in st.session_state:
@@ -23,7 +24,17 @@ if 'final_jenis' not in st.session_state:
 if 'final_nama' not in st.session_state:
     st.session_state.final_nama = ""
 
+# State untuk menyimpan data yang sudah di-upload (DF dan Nama)
+if 'uploaded_df' not in st.session_state:
+    st.session_state.uploaded_df = None
+if 'current_nama_siswa' not in st.session_state:
+    st.session_state.current_nama_siswa = ""
+if 'analisis_run' not in st.session_state:
+    st.session_state.analisis_run = False
+
+
 def generate_feedback(jenis_dominan_str):
+    # Logika Faktanya sama, tidak diubah
     fakta, rekomendasi, img_query = "", "", ""
 
     if "Botol PET" in jenis_dominan_str:
@@ -53,21 +64,27 @@ def generate_feedback(jenis_dominan_str):
     return fakta, rekomendasi, random.choice(kata_mutiara), img_query
 
 def submit_report_callback(jenis_terdominan, nama_siswa):
-    """Callback function yang dipanggil saat tombol submit diklik."""
-    # Ambil nilai dari Session State sebelum state diubah
+    """Callback function untuk tombol Selesaikan Laporan."""
+    
     solusi_input = st.session_state.solusi_area
+    k1_check = st.session_state.kriteria_1
+    k2_check = st.session_state.kriteria_2
     
     if not solusi_input:
-        st.error("Mohon masukkan ide solusi Anda terlebih dahulu.")
+        st.error("❌ **ERROR:** Mohon masukkan ide solusi Anda di kolom teks.")
         st.session_state.report_submitted = False
         return
         
-    # Simpan hasil akhir ke Session State
+    if not k1_check or not k2_check:
+        st.error("❌ **ERROR:** Mohon centang kedua kriteria Laporan Aksi (Specific dan Measurable) sebelum menyelesaikan laporan.")
+        st.session_state.report_submitted = False
+        return
+        
+    # Jika validasi lolos, simpan hasil akhir ke Session State
     st.session_state.report_submitted = True
     st.session_state.final_solusi = solusi_input
     st.session_state.final_jenis = jenis_terdominan
     st.session_state.final_nama = nama_siswa
-    # Streamlit akan me-rerun, dan output akan ditampilkan di luar fungsi callback
 
 def display_final_report():
     """Menampilkan laporan akhir dari Session State."""
@@ -76,7 +93,7 @@ def display_final_report():
     jenis = st.session_state.final_jenis
     
     if not jenis or not nama or not solusi:
-        return # Jangan tampilkan jika data belum lengkap
+        return 
 
     fakta, rekomendasi, kata_mutiara_pilihan, img_query = generate_feedback(jenis)
 
@@ -107,7 +124,7 @@ def display_final_report():
     st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis.replace(" ", "+"))
 
 
-# --- 2. FUNGSI ANALISIS DATA ---
+# --- 2. FUNGSI ANALISIS DATA (HANYA FUNGSI INI YANG AKAN DIPANGGIL OLEH TOMBOL) ---
 
 def run_analisis(df, nama_siswa):
     """Menganalisis data, menampilkan visualisasi, dan memunculkan form solusi."""
@@ -122,10 +139,10 @@ def run_analisis(df, nama_siswa):
 
 
     st.info(f"""
-        **Total Sampah Plastik yang Diaudit:** {total_berat_keseluruhan:.2f} gram.
-        **Jenis Paling Dominan:** **{jenis_terdominan}** ({berat_terdominan:.2f} gram).
+        **Total Sampah Plastik yang Diaudit:** {total_berat_keseluruhan:.2f} gram.<br>
+        **Jenis Paling Dominan:** **{jenis_terdominan}** ({berat_terdominan:.2f} gram).<br>
         Fokus solusi kita harus ada pada jenis ini!
-    """)
+    """, unsafe_allow_html=True)
     
     if not data_berat_per_jenis.empty:
         col1, col2 = st.columns(2)
@@ -159,6 +176,7 @@ def run_analisis(df, nama_siswa):
                         colors=plt.cm.Set3.colors, wedgeprops={'edgecolor': 'black'})
                 ax2.set_title('Persentase Kontribusi', fontsize=12)
                 ax2.axis('equal') 
+                plt.show() # Tidak perlu st.pyplot, Streamlit akan mengambilnya jika tidak ada output lain
                 st.pyplot(fig2)
                 
             else:
@@ -168,27 +186,36 @@ def run_analisis(df, nama_siswa):
     st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
     st.markdown(f"""
         Analisis data menunjukkan bahwa **{jenis_terdominan}** adalah masalah terbesar kita. 
-        Tuliskan solusi Anda di bawah ini!
+        Tuliskan solusi Anda dengan memenuhi kriteria Laporan Aksi yang **SMART**:
     """)
+    
+    # --- KRITERIA VALIDASI MANDIRI ---
+    st.markdown("#### ✅ Checklist Kriteria Laporan Aksi (Wajib Centang)")
+    
+    if 'kriteria_1' not in st.session_state:
+        st.session_state.kriteria_1 = False
+    if 'kriteria_2' not in st.session_state:
+        st.session_state.kriteria_2 = False
+
+    st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
+    st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
+    
+    st.markdown("#### 📝 Detail Rencana Aksi (Tuliskan Minimal 3 Poin)")
     
     # Input Solusi
     st.text_area(
         "Tuliskan Rencana Aksi/Solusi Utama Anda di sini:",
-        placeholder='Contoh: Kampanye Stop Botol Sekali Pakai...',
+        placeholder='Contoh:\n1. Mengajukan surat resmi ke Kantin untuk mengganti wadah Styrofoam dengan wadah reusable.\n2. Melakukan kampanye edukasi setiap hari Senin di lapangan sekolah tentang bahaya bungkus snack.\n3. Memasang 5 papan informasi di lokasi Hotspot.',
         key='solusi_area' 
     )
 
-    # Tombol Submit dengan callback, memastikan data solusi dan jenis dominan diolah
+    # Tombol Submit dengan callback
     st.button(
         "Selesaikan Laporan & Dapatkan Apresiasi!", 
         key="submit_solusi_btn",
         on_click=submit_report_callback,
         args=(jenis_terdominan, nama_siswa)
     )
-    
-    # Tampilkan laporan jika sudah disubmit
-    if st.session_state.report_submitted:
-        display_final_report()
 
 
 # --- 3. PROGRAM UTAMA APLIKASI WEB (MAIN) ---
@@ -203,7 +230,7 @@ def main():
             Tujuan: <b>Menganalisis</b> data, <b>Memahami</b> sumber masalah, dan <b>Bertindak</b> merancang solusi!
         """, unsafe_allow_html=True)
 
-    # Input Nama Siswa
+    # Input Nama Siswa (Tahap Awal)
     nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input")
 
     st.header("📥 Tahap 1: Unggah Data Audit Sampah")
@@ -212,27 +239,46 @@ def main():
     # File Uploader Streamlit
     uploaded_file = st.file_uploader("Pilih file Excel (data_sampah.xlsx):", type=['xlsx'])
     
+    # LOGIKA PENTING: Proses Upload dan Penyimpanan ke Session State
     if uploaded_file is not None and nama_siswa:
         try:
+            # Membaca file yang diunggah Streamlit
             df = pd.read_excel(uploaded_file)
             
             kolom_wajib = ['Tanggal', 'Jenis Plastik', 'Berat (gram)', 'Sumber (Kantin/Kelas)']
             if not all(col in df.columns for col in kolom_wajib):
                 st.error("⚠️ Error: Kolom Excel tidak sesuai! Pastikan kolomnya adalah: Tanggal, Jenis Plastik, Berat (gram), Sumber (Kantin/Kelas).")
+                st.session_state.uploaded_df = None
                 return
 
             st.success(f"✅ Data berhasil diunggah! Halo, **{nama_siswa}**.")
+            st.dataframe(df.head())
             
-            # Panggil Analisis
-            run_analisis(df, nama_siswa)
-
+            # SIMPAN DF DAN NAMA KE SESSION STATE
+            st.session_state.uploaded_df = df
+            st.session_state.current_nama_siswa = nama_siswa
+            st.session_state.analisis_run = True # Set analisis sebagai 'True' sementara untuk menunjukkan file siap
+            
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
+            st.session_state.uploaded_df = None
 
-    elif uploaded_file is None and nama_siswa:
-        st.warning("Silakan unggah file Excel Anda untuk memulai analisis.")
-    elif uploaded_file is not None and not nama_siswa:
-        st.warning("Mohon isi nama Anda/Kelompok di atas terlebih dahulu.")
+    # LOGIKA BARU: TOMBOL RUN ANALISIS
+    if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
+        # Tombol ini sekarang hanya akan muncul setelah upload sukses
+        if st.button("🚀 Run Analisis Data (Tahap 2 & 3)", key="run_analisis_btn"):
+            st.session_state.analisis_run = True
+            
+        # Setelah tombol di-klik (st.session_state.analisis_run == True), panggil fungsi run_analisis
+        if st.session_state.analisis_run:
+            st.markdown("---")
+            # Panggil Analisis menggunakan data dari Session State
+            run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
+
+    # Tampilkan laporan jika sudah disubmit, terlepas dari Tahap 1 & 2
+    if st.session_state.report_submitted:
+        display_final_report()
+
 
 if __name__ == "__main__":
     main()
