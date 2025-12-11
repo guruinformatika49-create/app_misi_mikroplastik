@@ -6,14 +6,14 @@ import io
 
 # --- 0. KONFIGURASI DAN INIALISASI SESSION STATE ---
 
-# Konfigurasi Streamlit (Header, Layout, dll.)
+# Konfigurasi Streamlit
 st.set_page_config(
     page_title="Data Driven Trash Tracker",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Inisialisasi DataFrame default untuk tabel SMART
+# Template DataFrame SMART
 DEFAULT_SMART_DF = pd.DataFrame({
     'Komponen SMART': ['S – Specific', 'M – Measurable', 'A – Achievable', 'R – Relevant', 'T – Time-bound'],
     'Pertanyaan Panduan': [
@@ -27,6 +27,8 @@ DEFAULT_SMART_DF = pd.DataFrame({
 })
 
 # Inisialisasi Session State Global
+# (st.session_state.smart_data TIDAK diinisialisasi di sini untuk menghindari konflik,
+#  tetapi diinisialisasi di run_analisis_callback)
 if 'report_submitted' not in st.session_state: st.session_state.report_submitted = False
 if 'final_solusi' not in st.session_state: st.session_state.final_solusi = ""
 if 'final_jenis' not in st.session_state: st.session_state.final_jenis = ""
@@ -38,13 +40,12 @@ if 'kriteria_1' not in st.session_state: st.session_state.kriteria_1 = False
 if 'kriteria_2' not in st.session_state: st.session_state.kriteria_2 = False
 if 'solusi_aksi_nyata' not in st.session_state: st.session_state.solusi_aksi_nyata = ""
 if 'dominan_jenis' not in st.session_state: st.session_state.dominan_jenis = ""
-if 'smart_data' not in st.session_state: st.session_state.smart_data = DEFAULT_SMART_DF.copy()
 
 
 # --- 1. FUNGSI CALLBACK ---
 
 def run_analisis_callback():
-    """Callback untuk tombol Run Analisis. Reset state form."""
+    """Callback untuk tombol Run Analisis. Reset state form dan inisialisasi smart_data."""
     
     if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
         # Reset semua state form dan laporan
@@ -53,7 +54,9 @@ def run_analisis_callback():
         st.session_state.kriteria_1 = False
         st.session_state.kriteria_2 = False
         st.session_state.solusi_aksi_nyata = ""
-        # Reset tabel SMART: PENTING - gunakan .copy()
+        
+        # PENTING: Inisialisasi/Reset smart_data di sini. 
+        # Ini memastikan st.data_editor mendapatkan nilai awal yang bersih
         st.session_state.smart_data = DEFAULT_SMART_DF.copy() 
         
         st.rerun()
@@ -61,15 +64,20 @@ def run_analisis_callback():
         st.error("Gagal menjalankan analisis. Pastikan file Excel sudah diunggah dan nama kelompok terisi.")
 
 def submit_report_callback():
-    """Callback function untuk tombol Selesaikan Laporan. Dibuat lebih stabil."""
+    """Callback function untuk tombol Selesaikan Laporan. Mengambil data dari smart_data."""
     
+    # Ambil data dari tabel yang sudah diedit (kunci ini DIJAMIN ada setelah run_analisis_callback)
+    if 'smart_data' not in st.session_state:
+        st.error("❌ Data SMART belum tersedia. Mohon jalankan Tahap 2 terlebih dahulu.")
+        return
+        
     df_smart = st.session_state.smart_data 
     jawaban_smart = df_smart['Jawabanmu'].tolist()
     aksi_nyata = st.session_state.solusi_aksi_nyata
     k1_check = st.session_state.kriteria_1
     k2_check = st.session_state.kriteria_2
     
-    # 1. Validasi Input (Dilakukan di awal dan tidak mencoba mengatur state boolean)
+    # 1. Validasi Input
     if any(j == 'Tulis di sini...' or not j for j in jawaban_smart) or not aksi_nyata:
         st.error("❌ **ERROR:** Mohon lengkapi **SEMUA** kolom 'Jawabanmu' di tabel SMART dan kolom Aksi Nyata.")
         return
@@ -89,20 +97,19 @@ def submit_report_callback():
         f"**Rencana Aksi Nyata (5 Poin):**\n{aksi_nyata}"
     )
         
-    # Set Final State (Hanya di akhir dan tidak ada konflik)
+    # Set Final State
     st.session_state.report_submitted = True
     st.session_state.final_solusi = solusi_input_final
     st.session_state.final_jenis = st.session_state.dominan_jenis
     st.session_state.final_nama = st.session_state.current_nama_siswa
 
-    # Panggil rerun sekali untuk menampilkan laporan final
     st.rerun() 
 
-# --- FUNGSI PENDUKUNG LAINNYA (TIDAK DIUBAH) ---
+# --- FUNGSI PENDUKUNG LAINNYA ---
 
 def generate_feedback(jenis_dominan_str):
     fakta_1, fakta_2, rekomendasi, img_query = "", "", "", ""
-    # ... (Logika generate_feedback tetap sama)
+
     if "Botol PET" in jenis_dominan_str:
         fakta_1 = "Fakta Mengkhawatirkan: Botol PET membutuhkan waktu sekitar 450 tahun untuk terurai. Sebagian besar botol hanya digunakan sekali!"
         fakta_2 = "Jutaan ton botol PET berakhir di lautan setiap tahun. Mereka terfragmentasi menjadi mikroplastik yang memasuki rantai makanan kita."
@@ -134,7 +141,6 @@ def generate_feedback(jenis_dominan_str):
     return fakta_1, fakta_2, rekomendasi, random.choice(kata_mutiara), img_query
 
 def display_final_report():
-    # ... (Logika display_final_report tetap sama)
     nama = st.session_state.final_nama
     solusi = st.session_state.final_solusi
     jenis = st.session_state.final_jenis
@@ -211,8 +217,7 @@ def run_analisis(df, nama_siswa):
             plt.xticks(rotation=45, ha='right', fontsize=9)
             plt.tight_layout()
             st.pyplot(fig1) 
-            
-        
+                    
         # Visualisasi 2: Diagram Lingkaran
         with col2:
             st.subheader("2. Persentase Kontribusi")
@@ -229,11 +234,10 @@ def run_analisis(df, nama_siswa):
                 ax2.set_title('Persentase Kontribusi', fontsize=12)
                 ax2.axis('equal') 
                 st.pyplot(fig2)
-                
-            else:
+                            else:
                 st.warning("Tidak cukup data plastik untuk membuat Diagram Lingkaran yang berarti.")
     
-    # --- FORM SOLUSI ---
+    # --- FORM SOLUSI (TAHAP 3) ---
     st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
     
     st.markdown(f"""
@@ -242,6 +246,7 @@ def run_analisis(df, nama_siswa):
     """)
     
     # --- TABEL INTERAKTIF SMART ---
+    # PENTING: Gunakan st.session_state.smart_data yang sudah diinisialisasi/reset di callback.
     st.data_editor(
         st.session_state.smart_data,
         column_config={
@@ -254,6 +259,7 @@ def run_analisis(df, nama_siswa):
             "Pertanyaan Panduan": st.column_config.Column(disabled=True)
         },
         hide_index=True,
+        # Key ini sekarang dijamin bersih dari konflik karena reset di callback run_analisis_callback
         key="smart_data"
     )
     
@@ -269,6 +275,7 @@ def run_analisis(df, nama_siswa):
     # --- KRITERIA VALIDASI MANDIRI ---
     st.markdown("#### ✅ Checklist Validasi Mandiri (Wajib Centang)")
     
+    # Perhatikan: checkbox menggunakan key yang berbeda dari data editor
     st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
     st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
     
