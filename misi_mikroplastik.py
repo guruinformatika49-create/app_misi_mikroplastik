@@ -27,19 +27,19 @@ DEFAULT_SMART_DF = pd.DataFrame({
 })
 
 # Inisialisasi Session State Global
-# (st.session_state.smart_data TIDAK diinisialisasi di sini untuk menghindari konflik,
-#  tetapi diinisialisasi di run_analisis_callback)
 if 'report_submitted' not in st.session_state: st.session_state.report_submitted = False
 if 'final_solusi' not in st.session_state: st.session_state.final_solusi = ""
 if 'final_jenis' not in st.session_state: st.session_state.final_jenis = ""
 if 'final_nama' not in st.session_state: st.session_state.final_nama = ""
 if 'uploaded_df' not in st.session_state: st.session_state.uploaded_df = None
 if 'current_nama_siswa' not in st.session_state: st.session_state.current_nama_siswa = ""
-if 'analisis_run' not in st.session_state: st.session_state.analisis_run = False
+if 'analisis_run' not in st.session_state: st.session_run = False
 if 'kriteria_1' not in st.session_state: st.session_state.kriteria_1 = False
 if 'kriteria_2' not in st.session_state: st.session_state.kriteria_2 = False
 if 'solusi_aksi_nyata' not in st.session_state: st.session_state.solusi_aksi_nyata = ""
 if 'dominan_jenis' not in st.session_state: st.session_state.dominan_jenis = ""
+# Pastikan smart_data diinisialisasi hanya saat diperlukan di callback
+# if 'smart_data' not in st.session_state: st.session_state.smart_data = DEFAULT_SMART_DF.copy() # Dihapus agar tidak konflik
 
 
 # --- 1. FUNGSI CALLBACK ---
@@ -56,7 +56,6 @@ def run_analisis_callback():
         st.session_state.solusi_aksi_nyata = ""
         
         # PENTING: Inisialisasi/Reset smart_data di sini. 
-        # Ini memastikan st.data_editor mendapatkan nilai awal yang bersih
         st.session_state.smart_data = DEFAULT_SMART_DF.copy() 
         
         st.rerun()
@@ -108,6 +107,7 @@ def submit_report_callback():
 # --- FUNGSI PENDUKUNG LAINNYA ---
 
 def generate_feedback(jenis_dominan_str):
+    """MENGATASI INDENTATION ERROR DI SINI"""
     fakta_1, fakta_2, rekomendasi, img_query = "", "", "", ""
 
     if "Botol PET" in jenis_dominan_str:
@@ -246,7 +246,7 @@ def run_analisis(df, nama_siswa):
     """)
     
     # --- TABEL INTERAKTIF SMART ---
-    # PENTING: Gunakan st.session_state.smart_data yang sudah diinisialisasi/reset di callback.
+    # st.session_state.smart_data dijamin ada karena sudah di-reset/dibuat di run_analisis_callback
     st.data_editor(
         st.session_state.smart_data,
         column_config={
@@ -259,7 +259,6 @@ def run_analisis(df, nama_siswa):
             "Pertanyaan Panduan": st.column_config.Column(disabled=True)
         },
         hide_index=True,
-        # Key ini sekarang dijamin bersih dari konflik karena reset di callback run_analisis_callback
         key="smart_data"
     )
     
@@ -275,12 +274,11 @@ def run_analisis(df, nama_siswa):
     # --- KRITERIA VALIDASI MANDIRI ---
     st.markdown("#### ✅ Checklist Validasi Mandiri (Wajib Centang)")
     
-    # Perhatikan: checkbox menggunakan key yang berbeda dari data editor
     st.checkbox("1. Solusi sudah fokus/spesifik pada **Jenis Sampah Dominan** (Contoh: Botol PET). (SMART: Specific)", key='kriteria_1')
     st.checkbox("2. Solusi memiliki **Target yang Jelas** dan **Terukur** (Contoh: Mengurangi 50% sampah ini dalam 1 bulan). (SMART: Measurable & Realistic)", key='kriteria_2')
     
 
-    # Tombol Submit (Menggunakan callback yang sudah diamankan)
+    # Tombol Submit 
     st.button(
         "Selesaikan Laporan & Dapatkan Apresiasi!", 
         key="submit_solusi_btn",
