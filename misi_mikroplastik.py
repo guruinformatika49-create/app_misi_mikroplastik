@@ -230,16 +230,19 @@ def run_analisis(df, nama_siswa):
                 ax2.set_title('Persentase Kontribusi', fontsize=12)
                 ax2.axis('equal') 
                 st.pyplot(fig2)
+                
             else:
                 st.warning("Tidak cukup data plastik untuk membuat Diagram Lingkaran yang berarti.")
     
     # --- FORM SOLUSI (TAHAP 3) ---
     st.subheader("💡 Tahap 3: Merancang Solusi & Laporan Akhir")
     
+    # --- PERBAIKAN SINTAKSIS DI SINI ---
     st.markdown(f"""
         Pilih satu solusi terbaik, lalu buat kerangka **SMART**-nya berdasarkan masalah utama (**{jenis_terdominan}**).
         Isi kolom **'Jawabanmu'** pada tabel interaktif di bawah:
     """)
+    # --- AKHIR PERBAIKAN SINTAKSIS ---
     
     # --- TABEL INTERAKTIF SMART ---
     # Perubahan Kunci: Hapus key="smart_data" dan simpan hasil kembaliannya ke smart_data_temp
@@ -294,4 +297,72 @@ def main():
     st.markdown("""
         <div style='background-color:#E8F5E9; border-left: 5px solid #4CAF50; padding: 10px 15px; margin: 15px 0; border-radius: 4px;'>
             <p style='font-style: italic; font-size: 1.1em; color: #1B5E20;'>
-                "
+                "Kita tidak mewarisi bumi dari leluhur kita; kita meminjamnya dari anak cucu kita."
+                <br>
+                <small>— Pepatah Suku Indian</small>
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    with st.expander("❓ Klik untuk memahami Tujuan Proyek"):
+        st.markdown("""
+            Proyek ini adalah investigasi ilmiah untuk mengungkap jejak sampah plastik di lingkungan sekolah.
+            Tujuan: <b>Menganalisis</b> data, <b>Memahami</b> sumber masalah, dan <b>Bertindak</b> merancang solusi!
+        """, unsafe_allow_html=True)
+
+    # Input Nama Siswa (Tahap Awal)
+    nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input_unique")
+
+    st.header("📥 Tahap 1: Unggah Data Audit Sampah")
+    st.markdown("Unggah file Excel (`.xlsx`) hasil audit sampah Anda.")
+
+    # File Uploader Streamlit
+    uploaded_file = st.file_uploader("Pilih file Excel (data_sampah.xlsx):", type=['xlsx'])
+    
+    # LOGIKA PENTING: Proses Upload dan Penyimpanan ke Session State
+    if uploaded_file is not None and nama_siswa:
+        try:
+            df = pd.read_excel(uploaded_file)
+            
+            kolom_wajib = ['Tanggal', 'Jenis Plastik', 'Berat (gram)', 'Sumber (Kantin/Kelas)']
+            if not all(col in df.columns for col in kolom_wajib):
+                st.error("⚠️ Error: Kolom Excel tidak sesuai! Pastikan kolomnya adalah: Tanggal, Jenis Plastik, Berat (gram), Sumber (Kantin/Kelas).")
+                st.session_state.uploaded_df = None
+                return
+
+            # Cek apakah file baru diunggah untuk mereset analisis
+            if st.session_state.uploaded_df is None or not df.equals(st.session_state.uploaded_df):
+                st.session_state.analisis_run = False
+
+            st.success(f"✅ Data berhasil diunggah! Halo, **{nama_siswa}**.")
+            st.dataframe(df.head())
+            
+            st.session_state.uploaded_df = df
+            st.session_state.current_nama_siswa = nama_siswa
+            
+        except Exception as e:
+            st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
+            st.session_state.uploaded_df = None
+            st.session_state.analisis_run = False
+
+    # LOGIKA TOMBOL RUN ANALISIS
+    if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
+        if not st.session_state.analisis_run:
+            st.button(
+                "🚀 Run Analisis Data (Tahap 2 & 3)", 
+                key="run_analisis_btn",
+                on_click=run_analisis_callback
+            )
+
+    # TAMPILKAN HASIL ANALISIS JIKA STATE SUDAH TRUE
+    if st.session_state.analisis_run and st.session_state.uploaded_df is not None:
+        st.markdown("---")
+        run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
+
+    # Tampilkan laporan jika sudah disubmit
+    if st.session_state.report_submitted:
+        display_final_report()
+
+
+if __name__ == "__main__":
+    main()
