@@ -33,44 +33,40 @@ if 'final_jenis' not in st.session_state: st.session_state.final_jenis = ""
 if 'final_nama' not in st.session_state: st.session_state.final_nama = ""
 if 'uploaded_df' not in st.session_state: st.session_state.uploaded_df = None
 if 'current_nama_siswa' not in st.session_state: st.session_state.current_nama_siswa = ""
-if 'analisis_run' not in st.session_state: st.session_state.analisis_run = False # Kunci yang benar
+if 'analisis_run' not in st.session_state: st.session_state.analisis_run = False
 if 'kriteria_1' not in st.session_state: st.session_state.kriteria_1 = False
 if 'kriteria_2' not in st.session_state: st.session_state.kriteria_2 = False
 if 'solusi_aksi_nyata' not in st.session_state: st.session_state.solusi_aksi_nyata = ""
 if 'dominan_jenis' not in st.session_state: st.session_state.dominan_jenis = ""
-# Kunci smart_data akan diinisialisasi di callback agar tidak konflik dengan st.data_editor
-# yang sedang beroperasi di luar callback.
+# Kunci baru untuk menyimpan data editor secara manual
+if 'smart_data_temp' not in st.session_state: st.session_state.smart_data_temp = DEFAULT_SMART_DF.copy()
 
 
 # --- 1. FUNGSI CALLBACK ---
 
 def run_analisis_callback():
-    """Callback untuk tombol Run Analisis. Reset state form dan inisialisasi smart_data."""
+    """Callback untuk tombol Run Analisis. Reset state form dan data editor."""
     
     if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
-        # Reset semua state form dan laporan
+        # Set status analisis dan reset form
         st.session_state.analisis_run = True
         st.session_state.report_submitted = False
         st.session_state.kriteria_1 = False
         st.session_state.kriteria_2 = False
         st.session_state.solusi_aksi_nyata = ""
         
-        # PENTING: Inisialisasi/Reset smart_data di sini. 
-        st.session_state.smart_data = DEFAULT_SMART_DF.copy() 
+        # PENTING: Reset smart_data_temp (kunci tempat data edit disimpan)
+        st.session_state.smart_data_temp = DEFAULT_SMART_DF.copy() 
         
         st.rerun()
     else:
         st.error("Gagal menjalankan analisis. Pastikan file Excel sudah diunggah dan nama kelompok terisi.")
 
 def submit_report_callback():
-    """Callback function untuk tombol Selesaikan Laporan. Mengambil data dari smart_data."""
+    """Callback function untuk tombol Selesaikan Laporan. Mengambil data dari smart_data_temp."""
     
-    # Ambil data dari tabel yang sudah diedit 
-    if 'smart_data' not in st.session_state:
-        st.error("❌ Data SMART belum tersedia. Mohon jalankan Tahap 2 terlebih dahulu.")
-        return
-        
-    df_smart = st.session_state.smart_data 
+    # Ambil data dari kunci yang sekarang menampung hasil edit
+    df_smart = st.session_state.smart_data_temp 
     jawaban_smart = df_smart['Jawabanmu'].tolist()
     aksi_nyata = st.session_state.solusi_aksi_nyata
     k1_check = st.session_state.kriteria_1
@@ -107,7 +103,6 @@ def submit_report_callback():
 # --- FUNGSI PENDUKUNG LAINNYA ---
 
 def generate_feedback(jenis_dominan_str):
-    """Fungsi ini dikoreksi indentasinya."""
     fakta_1, fakta_2, rekomendasi, img_query = "", "", "", ""
 
     if "Botol PET" in jenis_dominan_str:
@@ -175,7 +170,6 @@ def display_final_report():
     """, unsafe_allow_html=True)
     
     st.markdown(f"**Visualisasi Dampak dan Solusi ({jenis}):**")
-    # Tag Gambar saya hapus agar tidak menimbulkan error di runtime Python Anda
     st.image("https://via.placeholder.com/800x300.png?text=Contoh+Dampak+atau+Solusi+untuk+" + jenis.replace(" ", "+"))
 
 
@@ -248,8 +242,9 @@ def run_analisis(df, nama_siswa):
     """)
     
     # --- TABEL INTERAKTIF SMART ---
-    st.data_editor(
-        st.session_state.smart_data,
+    # Perubahan Kunci: Hapus key="smart_data" dan simpan hasil kembaliannya ke smart_data_temp
+    edited_df = st.data_editor(
+        st.session_state.smart_data_temp,
         column_config={
             "Jawabanmu": st.column_config.TextColumn(
                 "Jawabanmu",
@@ -260,8 +255,11 @@ def run_analisis(df, nama_siswa):
             "Pertanyaan Panduan": st.column_config.Column(disabled=True)
         },
         hide_index=True,
-        key="smart_data"
     )
+    
+    # Simpan hasil edit kembali ke Session State secara manual
+    # Ini memastikan Session State diupdate setelah widget selesai diproses.
+    st.session_state.smart_data_temp = edited_df
     
     # Aksi Nyata (5 Poin)
     st.markdown("#### 📝 Detail Rencana Aksi Nyata (Tuliskan Minimal 5 Poin)")
@@ -296,72 +294,4 @@ def main():
     st.markdown("""
         <div style='background-color:#E8F5E9; border-left: 5px solid #4CAF50; padding: 10px 15px; margin: 15px 0; border-radius: 4px;'>
             <p style='font-style: italic; font-size: 1.1em; color: #1B5E20;'>
-                "Kita tidak mewarisi bumi dari leluhur kita; kita meminjamnya dari anak cucu kita."
-                <br>
-                <small>— Pepatah Suku Indian</small>
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    with st.expander("❓ Klik untuk memahami Tujuan Proyek"):
-        st.markdown("""
-            Proyek ini adalah investigasi ilmiah untuk mengungkap jejak sampah plastik di lingkungan sekolah.
-            Tujuan: <b>Menganalisis</b> data, <b>Memahami</b> sumber masalah, dan <b>Bertindak</b> merancang solusi!
-        """, unsafe_allow_html=True)
-
-    # Input Nama Siswa (Tahap Awal)
-    nama_siswa = st.text_input("📝 Masukkan Nama Anda / Nama Kelompok:", key="nama_input_unique")
-
-    st.header("📥 Tahap 1: Unggah Data Audit Sampah")
-    st.markdown("Unggah file Excel (`.xlsx`) hasil audit sampah Anda.")
-
-    # File Uploader Streamlit
-    uploaded_file = st.file_uploader("Pilih file Excel (data_sampah.xlsx):", type=['xlsx'])
-    
-    # LOGIKA PENTING: Proses Upload dan Penyimpanan ke Session State
-    if uploaded_file is not None and nama_siswa:
-        try:
-            df = pd.read_excel(uploaded_file)
-            
-            kolom_wajib = ['Tanggal', 'Jenis Plastik', 'Berat (gram)', 'Sumber (Kantin/Kelas)']
-            if not all(col in df.columns for col in kolom_wajib):
-                st.error("⚠️ Error: Kolom Excel tidak sesuai! Pastikan kolomnya adalah: Tanggal, Jenis Plastik, Berat (gram), Sumber (Kantin/Kelas).")
-                st.session_state.uploaded_df = None
-                return
-
-            # Cek apakah file baru diunggah untuk mereset analisis
-            if st.session_state.uploaded_df is None or not df.equals(st.session_state.uploaded_df):
-                st.session_state.analisis_run = False
-
-            st.success(f"✅ Data berhasil diunggah! Halo, **{nama_siswa}**.")
-            st.dataframe(df.head())
-            
-            st.session_state.uploaded_df = df
-            st.session_state.current_nama_siswa = nama_siswa
-            
-        except Exception as e:
-            st.error(f"Terjadi kesalahan saat memproses file: Pastikan formatnya .xlsx yang valid. Error: {e}")
-            st.session_state.uploaded_df = None
-            st.session_state.analisis_run = False
-
-    # LOGIKA TOMBOL RUN ANALISIS
-    if st.session_state.uploaded_df is not None and st.session_state.current_nama_siswa:
-        if not st.session_state.analisis_run:
-            st.button(
-                "🚀 Run Analisis Data (Tahap 2 & 3)", 
-                key="run_analisis_btn",
-                on_click=run_analisis_callback
-            )
-
-    # TAMPILKAN HASIL ANALISIS JIKA STATE SUDAH TRUE
-    if st.session_state.analisis_run and st.session_state.uploaded_df is not None:
-        st.markdown("---")
-        run_analisis(st.session_state.uploaded_df, st.session_state.current_nama_siswa)
-
-    # Tampilkan laporan jika sudah disubmit
-    if st.session_state.report_submitted:
-        display_final_report()
-
-
-if __name__ == "__main__":
-    main()
+                "
